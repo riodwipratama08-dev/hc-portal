@@ -12,83 +12,15 @@ export default async function DashboardPage() {
   const role = emp.role;
   const isAdminOrHr = role === "admin" || role === "hr";
 
-  // Core Values Settings
   const { data: cvSetting } = await supabase
     .from("core_values_settings").select("*").limit(1).maybeSingle();
 
-  // Core Values items
   const { data: coreValues } = await supabase
     .from("company_core_values").select("*").eq("is_active", true).order("display_order");
 
-  // Announcements
   const { data: announcements } = await supabase
     .from("announcements").select("*, employees!inner(full_name)").eq("is_active", true)
     .order("is_pinned", { ascending: false }).order("published_at", { ascending: false }).limit(5);
-
-  // ===== RINGKASAN PER ROLE (query difilter di database) =====
-  let summaryTitle = "Ringkasan";
-  let summaryCards: React.ReactNode = null;
-
-  if (role === "employee") {
-    summaryTitle = "Ringkasan Saya";
-    const now = new Date();
-    const mo = String(now.getMonth() + 1).padStart(2, "0");
-    const yr = now.getFullYear();
-    const lastDay = String(new Date(yr, now.getMonth() + 1, 0).getDate());
-
-    const { data: att } = await supabase
-      .from("attendance").select("status, late_minutes")
-      .eq("employee_id", emp.id)
-      .gte("attendance_date", `${yr}-${mo}-01`).lte("attendance_date", `${yr}-${mo}-${lastDay}`);
-
-    const hadir = (att ?? []).filter((a: any) => a.status === "hadir" || a.status === "hadir_lembur").length;
-    const tidakHadir = (att ?? []).filter((a: any) => a.status === "tidak_hadir").length;
-    const terlambat = (att ?? []).filter((a: any) => a.late_minutes > 0).length;
-
-    summaryCards = <>
-      <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Hadir (Bulan Ini)</CardTitle></CardHeader><CardContent><p className="text-3xl font-bold text-green-600">{hadir}</p></CardContent></Card>
-      <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Tidak Hadir</CardTitle></CardHeader><CardContent><p className="text-3xl font-bold text-red-600">{tidakHadir}</p></CardContent></Card>
-      <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Terlambat</CardTitle></CardHeader><CardContent><p className="text-3xl font-bold text-yellow-600">{terlambat}</p></CardContent></Card>
-      <Card className="opacity-50"><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Sisa Cuti</CardTitle></CardHeader><CardContent><p className="text-xs text-muted-foreground italic">Akan tersedia setelah modul Approval Harian aktif</p></CardContent></Card>
-    </>;
-  }
-
-  if (role === "manager") {
-    summaryTitle = "Ringkasan Tim Saya";
-    const today = new Date().toISOString().slice(0, 10);
-    const deptEmpIds = (await supabase.from("employees").select("id").eq("department_id", emp.department_id)).data?.map((e: any) => e.id) ?? [];
-
-    const { data: teamAtt } = await supabase
-      .from("attendance").select("status").eq("attendance_date", today).in("employee_id", deptEmpIds);
-
-    const hadirCount = (teamAtt ?? []).filter((a: any) => a.status === "hadir" || a.status === "hadir_lembur").length;
-    const total = deptEmpIds.length;
-    const rate = total > 0 ? Math.round((hadirCount / total) * 100) : 0;
-
-    summaryCards = <>
-      <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Anggota Tim</CardTitle></CardHeader><CardContent><p className="text-3xl font-bold">{total}</p></CardContent></Card>
-      <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Hadir Hari Ini</CardTitle></CardHeader><CardContent><p className="text-3xl font-bold text-green-600">{hadirCount}</p></CardContent></Card>
-      <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Tidak Hadir Hari Ini</CardTitle></CardHeader><CardContent><p className="text-3xl font-bold text-red-600">{(teamAtt ?? []).filter((a: any) => a.status === "tidak_hadir").length}</p></CardContent></Card>
-      <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Tingkat Kehadiran Tim</CardTitle></CardHeader><CardContent><p className="text-3xl font-bold text-blue-600">{rate}%</p></CardContent></Card>
-    </>;
-  }
-
-  if (isAdminOrHr) {
-    summaryTitle = "Ringkasan Perusahaan";
-    const today = new Date().toISOString().slice(0, 10);
-    const { count: activeEmp } = await supabase.from("employees").select("*", { count: "exact" }).eq("status", "active");
-    const { data: todayAtt } = await supabase.from("attendance").select("status").eq("attendance_date", today);
-    const hadir = (todayAtt ?? []).filter((a: any) => a.status === "hadir" || a.status === "hadir_lembur").length;
-    const tidakHadir = (todayAtt ?? []).filter((a: any) => a.status === "tidak_hadir").length;
-    const rate = (activeEmp ?? 0) > 0 ? Math.round((hadir / (activeEmp ?? 1)) * 100) : 0;
-
-    summaryCards = <>
-      <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Karyawan Aktif</CardTitle></CardHeader><CardContent><p className="text-3xl font-bold">{activeEmp ?? 0}</p></CardContent></Card>
-      <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Hadir Hari Ini</CardTitle></CardHeader><CardContent><p className="text-3xl font-bold text-green-600">{hadir}</p></CardContent></Card>
-      <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Tidak Hadir Hari Ini</CardTitle></CardHeader><CardContent><p className="text-3xl font-bold text-red-600">{tidakHadir}</p></CardContent></Card>
-      <Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Tingkat Kehadiran</CardTitle></CardHeader><CardContent><p className="text-3xl font-bold text-blue-600">{rate}%</p></CardContent></Card>
-    </>;
-  }
 
   return (
     <div className="space-y-8">
@@ -132,14 +64,6 @@ export default async function DashboardPage() {
               </Card>
             ))}
           </div>
-        </section>
-      )}
-
-      {/* ===== RINGKASAN ===== */}
-      {summaryCards && (
-        <section>
-          <h2 className="text-lg font-semibold text-gray-600 uppercase tracking-wide mb-4">{summaryTitle}</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">{summaryCards}</div>
         </section>
       )}
 
