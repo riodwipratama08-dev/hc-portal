@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { logout } from "./auth/actions";
 
 export default async function DashboardLayout({
@@ -38,56 +39,56 @@ export default async function DashboardLayout({
         <h1 className="mb-8 text-xl font-bold">HC Portal</h1>
         <nav className="space-y-1 flex-1">
           {isAdminOrHr && (
-            <a
+            <Link
               href="/employees"
               className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
             >
               Employees
-            </a>
+            </Link>
           )}
           {isAdminOrHr && (
-            <a
+            <Link
               href="/shifts"
               className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
             >
               Shifts
-            </a>
+            </Link>
           )}
           {isAdminOrHr && (
-            <a
+            <Link
               href="/schedules"
               className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
             >
               Schedules
-            </a>
+            </Link>
           )}
-          <a
+          <Link
             href="/leaves"
             className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
           >
             Leaves
-          </a>
-          <a
+          </Link>
+          <Link
             href="/attendance"
             className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
           >
             Attendance
-          </a>
+          </Link>
           {isAdminOrHr && (
-            <a
+            <Link
               href="/attendance/import"
               className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
             >
               Import CSV
-            </a>
+            </Link>
           )}
           {isAdminOrHr && (
-            <a
+            <Link
               href="/leave-balances"
               className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
             >
               Leave Balances
-            </a>
+            </Link>
           )}
         </nav>
         <div className="pt-8 border-t">
