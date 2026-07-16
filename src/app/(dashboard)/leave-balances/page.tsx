@@ -1,3 +1,4 @@
+import { getCurrentEmployee } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { BalanceList } from "./balance-list";
 
@@ -5,6 +6,10 @@ export const dynamic = "force-dynamic";
 
 export default async function LeaveBalancesPage() {
   const supabase = createClient();
+  const emp = await getCurrentEmployee().catch(() => null);
+  if (!emp || (emp.role !== "admin" && emp.role !== "hr")) {
+    return <div className="text-center py-12 text-lg text-red-600">Unauthorized — Only Admin & HR can access.</div>;
+  }
 
   const { data: employees } = await supabase
     .from("employees")

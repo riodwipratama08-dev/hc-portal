@@ -124,19 +124,26 @@ export async function approveLeave(requestId: string, notes?: string) {
 
   const { data: approver } = await supabase
     .from("employees")
-    .select("id")
+    .select("id, role")
     .eq("email", user.email)
     .single();
 
   if (!approver) return { error: "Not found" };
 
-  // Update this approver's approval record
-  const { error: updError } = await supabase
+  const isAdminOrHr = approver.role === "admin" || approver.role === "hr";
+
+  // Admin/HR can approve any pending approval. Other roles only their own assigned records.
+  let updQuery = supabase
     .from("approvals")
     .update({ status: "approved", notes: notes || null, acted_at: new Date().toISOString() })
     .eq("leave_request_id", requestId)
-    .eq("approver_id", approver.id)
     .eq("status", "pending");
+
+  if (!isAdminOrHr) {
+    updQuery = updQuery.eq("approver_id", approver.id);
+  }
+
+  const { error: updError } = await updQuery;
 
   if (updError) return { error: updError.message };
 
@@ -166,18 +173,26 @@ export async function rejectLeave(requestId: string, notes?: string) {
 
   const { data: approver } = await supabase
     .from("employees")
-    .select("id")
+    .select("id, role")
     .eq("email", user.email)
     .single();
 
   if (!approver) return { error: "Not found" };
 
-  // Reject THIS approver's record
-  await supabase
+  const isAdminOrHr = approver.role === "admin" || approver.role === "hr";
+
+  // Admin/HR can reject any pending approval. Others only their own assigned records.
+  let rejectQuery = supabase
     .from("approvals")
     .update({ status: "rejected", notes: notes || null, acted_at: new Date().toISOString() })
     .eq("leave_request_id", requestId)
-    .eq("approver_id", approver.id);
+    .eq("status", "pending");
+
+  if (!isAdminOrHr) {
+    rejectQuery = rejectQuery.eq("approver_id", approver.id);
+  }
+
+  await rejectQuery;
 
   // Reject any remaining pending approvals
   await supabase

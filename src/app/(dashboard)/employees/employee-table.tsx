@@ -46,11 +46,13 @@ export function EmployeeTable({
   departments,
   currentSearch,
   currentDepartmentId,
+  isAdminOrHr,
 }: {
   employees: EmployeeWithRelations[];
   departments: Department[];
   currentSearch: string;
   currentDepartmentId: string;
+  isAdminOrHr: boolean;
 }) {
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
@@ -117,13 +119,13 @@ export function EmployeeTable({
               <TableHead>Position</TableHead>
               <TableHead>Role</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              {isAdminOrHr && <TableHead className="text-right">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {employees.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={isAdminOrHr ? 8 : 7} className="text-center text-muted-foreground py-8">
                   No employees found.
                 </TableCell>
               </TableRow>
@@ -145,47 +147,49 @@ export function EmployeeTable({
                     {emp.status}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" size="sm" asChild>
-                      <a href={`/employees/${emp.id}/edit`}>Edit</a>
-                    </Button>
-                    {emp.status === "active" && (
-                      <>
-                        {confirmId === emp.id ? (
-                          <span className="flex gap-1">
+                {isAdminOrHr && (
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" size="sm" asChild>
+                        <a href={`/employees/${emp.id}/edit`}>Edit</a>
+                      </Button>
+                      {emp.status === "active" && (
+                        <>
+                          {confirmId === emp.id ? (
+                            <span className="flex gap-1">
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={async () => {
+                                  await resignEmployee(emp.id);
+                                  window.location.reload();
+                                }}
+                              >
+                                Confirm
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setConfirmId(null)}
+                              >
+                                Cancel
+                              </Button>
+                            </span>
+                          ) : (
                             <Button
-                              variant="destructive"
+                              variant="outline"
                               size="sm"
-                              onClick={async () => {
-                                await resignEmployee(emp.id);
-                                window.location.reload();
-                              }}
+                              onClick={() => setConfirmId(emp.id)}
+                              className="text-destructive border-destructive/30 hover:bg-destructive/10"
                             >
-                              Confirm
+                              Resign
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setConfirmId(null)}
-                            >
-                              Cancel
-                            </Button>
-                          </span>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setConfirmId(emp.id)}
-                            className="text-destructive border-destructive/30 hover:bg-destructive/10"
-                          >
-                            Resign
-                          </Button>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </TableCell>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>
