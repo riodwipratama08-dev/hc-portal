@@ -33,8 +33,8 @@ export default async function DashboardLayout({
   const isAdminOrHr = role === "admin" || role === "hr";
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="w-64 border-r bg-white p-6 flex flex-col">
+    <div className="flex h-screen overflow-hidden">
+      <aside className="w-64 border-r bg-white p-6 flex flex-col overflow-y-auto">
         <h1 className="mb-8 text-xl font-bold">HC Portal</h1>
         <nav className="space-y-1 flex-1">
           {isAdminOrHr && (
