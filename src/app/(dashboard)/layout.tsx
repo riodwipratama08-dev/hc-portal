@@ -38,6 +38,12 @@ export default async function DashboardLayout({
       <aside className="w-64 border-r bg-white p-6 flex flex-col overflow-y-auto">
         <h1 className="mb-8 text-xl font-bold">HC Portal</h1>
         <nav className="space-y-1 flex-1">
+          <Link
+            href="/"
+            className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+          >
+            Dashboard
+          </Link>
           {isAdminOrHr && (
             <Link
               href="/employees"
@@ -88,6 +94,22 @@ export default async function DashboardLayout({
               className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
             >
               Leave Balances
+            </Link>
+          )}
+          {isAdminOrHr && (
+            <Link
+              href="/announcements/manage"
+              className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+            >
+              Announcements
+            </Link>
+          )}
+          {role === "admin" && (
+            <Link
+              href="/settings/core-values"
+              className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+            >
+              Core Values
             </Link>
           )}
         </nav>
