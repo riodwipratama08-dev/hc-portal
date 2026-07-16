@@ -10,7 +10,11 @@ export function createClient() {
     {
       cookies: {
         getAll() {
-          return cookieStore.getAll();
+          try {
+            return cookieStore.getAll();
+          } catch {
+            return [];
+          }
         },
         setAll(
           cookiesToSet: { name: string; value: string; options: CookieOptions }[]
