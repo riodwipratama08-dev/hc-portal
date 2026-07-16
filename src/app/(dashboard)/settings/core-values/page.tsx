@@ -1,6 +1,7 @@
 import { getCurrentEmployee } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { CoreValueManager } from "./manager";
+import { HeroSettingsForm } from "./hero-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -12,11 +13,18 @@ export default async function CoreValuesPage() {
   }
 
   const { data: values } = await supabase.from("company_core_values").select("*").order("display_order");
+  const { data: settings } = await supabase.from("core_values_settings").select("*").limit(1).maybeSingle();
 
   return (
-    <div>
-      <h1 className="mb-6 text-2xl font-bold">Manage Core Values</h1>
-      <CoreValueManager values={(values ?? []) as any[]} />
+    <div className="space-y-8">
+      <h1 className="text-2xl font-bold">Manage Core Values</h1>
+
+      <HeroSettingsForm defaults={settings} />
+
+      <div>
+        <h2 className="text-lg font-semibold mb-4">Value Items</h2>
+        <CoreValueManager values={(values ?? []) as any[]} />
+      </div>
     </div>
   );
 }
