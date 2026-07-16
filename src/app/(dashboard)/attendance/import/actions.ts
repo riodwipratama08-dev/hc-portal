@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { isWriteAllowed } from "@/lib/rbac";
 import {
   normalizeTime, parseYesNo, determineStatusAndRemarks,
   calcLateMinutes, calcEarlyLeaveMinutes,
@@ -29,6 +30,12 @@ export async function confirmImport(
     .eq("email", user.email)
     .single();
   if (!employee) return { error: "Employee record not found" };
+
+  // Also check role — only admin/hr can import
+  const { data: empRole } = await supabase.from("employees").select("role").eq("id", employee.id).single();
+  if (!empRole || !isWriteAllowed(empRole.role)) {
+    return { error: "Unauthorized — only Admin/HR can import attendance" };
+  }
 
   const validRows = rows.filter((r: any) => r._match);
   if (validRows.length === 0) return { error: "No valid rows to import" };

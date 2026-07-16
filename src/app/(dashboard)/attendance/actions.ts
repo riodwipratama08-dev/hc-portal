@@ -32,8 +32,8 @@ export async function recordOvertime(formData: FormData) {
 
   if (!recorder) return { error: "Employee record not found." };
 
-  if (recorder.role !== "manager") {
-    return { error: "Only SPV/Manager can record overtime." };
+  if (recorder.role !== "admin" && recorder.role !== "hr" && recorder.role !== "manager") {
+    return { error: "Only Admin, HR, and SPV/Manager can record overtime." };
   }
 
   const { data: targetEmployee } = await supabase

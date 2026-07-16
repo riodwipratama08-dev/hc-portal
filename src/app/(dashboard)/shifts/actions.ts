@@ -3,8 +3,18 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isWriteAllowed } from "@/lib/rbac";
+
+async function checkWriteAccess() {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+  const { data: emp } = await supabase.from("employees").select("role").eq("email", user.email).single();
+  return emp ? isWriteAllowed(emp.role) : false;
+}
 
 export async function createShift(formData: FormData) {
+  if (!(await checkWriteAccess())) return { error: "Unauthorized" };
   const supabase = createClient();
 
   const days = [];
@@ -29,6 +39,7 @@ export async function createShift(formData: FormData) {
 }
 
 export async function updateShift(id: string, formData: FormData) {
+  if (!(await checkWriteAccess())) return { error: "Unauthorized" };
   const supabase = createClient();
 
   const days = [];

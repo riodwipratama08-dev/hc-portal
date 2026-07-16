@@ -2,6 +2,7 @@ import { getCurrentEmployee } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { EmployeeTable } from "./employee-table";
 import { EmployeeWithRelations } from "@/lib/types";
+import { isWriteAllowed, canViewAllData } from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
 
@@ -14,10 +15,10 @@ export default async function EmployeesPage(props: {
 
   // Employee role → deny completely
   if (employee.role === "employee") {
-    return <div className="text-center py-12 text-lg text-red-600">Unauthorized — Hanya Admin, HR, dan Manager yang dapat mengakses halaman ini.</div>;
+    return <div className="text-center py-12 text-lg text-red-600">Unauthorized — Hanya Admin, HR, Manager, dan Executive yang dapat mengakses halaman ini.</div>;
   }
 
-  const isAdminOrHr = employee.role === "admin" || employee.role === "hr";
+  const canWrite = isWriteAllowed(employee.role);
   const isManager = employee.role === "manager";
 
   const { data: departments } = await supabase
@@ -42,7 +43,7 @@ export default async function EmployeesPage(props: {
     );
   }
 
-  if (searchParams?.department_id && isAdminOrHr) {
+  if (searchParams?.department_id && canViewAllData(employee.role)) {
     query = query.eq("department_id", searchParams.department_id);
   }
 
@@ -54,7 +55,7 @@ export default async function EmployeesPage(props: {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Employees</h1>
-        {isAdminOrHr && (
+        {canWrite && (
           <a
             href="/employees/new"
             className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
@@ -69,7 +70,7 @@ export default async function EmployeesPage(props: {
         departments={departments ?? []}
         currentSearch={searchParams?.search ?? ""}
         currentDepartmentId={searchParams?.department_id ?? ""}
-        isAdminOrHr={isAdminOrHr}
+        isAdminOrHr={canWrite}
       />
     </div>
   );

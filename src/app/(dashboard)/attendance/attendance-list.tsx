@@ -79,8 +79,9 @@ export function AttendanceList({
   currentStartDate: string; currentEndDate: string;
   currentDepartmentId: string; currentStatus: string;
   sortBy: string; sortDir: string;
+  canViewAll?: boolean;
 }) {
-  const isAdminOrHr = role === "admin" || role === "hr";
+  const isWriteAccess = role === "admin" || role === "hr";
   const isManager = role === "manager";
 
   const [otFormId, setOtFormId] = useState<string | null>(null);
@@ -144,7 +145,7 @@ export function AttendanceList({
           <Input name="start_date" type="date" defaultValue={currentStartDate} className="h-9" /></div>
         <div><label className="block text-xs font-medium mb-1">End Date</label>
           <Input name="end_date" type="date" defaultValue={currentEndDate} className="h-9" /></div>
-        {isAdminOrHr && <div><label className="block text-xs font-medium mb-1">Department</label>
+        {(isWriteAccess || role === "executive") && <div><label className="block text-xs font-medium mb-1">Department</label>
           <select name="department_id" defaultValue={currentDepartmentId} className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm">
             <option value="">All</option>{departments.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select></div>}
@@ -181,7 +182,7 @@ export function AttendanceList({
             {attendance.map((a: any) => {
               const otRecords = a.overtime_records ?? [];
               const hasOT = otRecords.length > 0;
-              const showOTButton = isManager && a.status === "hadir" && a.employees?.id;
+              const showOTButton = (isWriteAccess || isManager) && a.status === "hadir" && a.employees?.id;
               return (
                 <TableRow key={a.id} className={cn("text-xs", rowClass(a.status))}>
                   <TableCell className="whitespace-nowrap">{a.attendance_date}</TableCell>

@@ -26,7 +26,7 @@ export interface Employee {
   position_id: string;
   join_date: string;
   status: "active" | "resigned" | "terminated";
-  role: "admin" | "hr" | "manager" | "employee";
+  role: "admin" | "hr" | "manager" | "employee" | "executive";
   created_at: string;
   updated_at: string;
 }

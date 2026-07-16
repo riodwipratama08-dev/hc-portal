@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import { LeaveDetail } from "./leave-detail";
+import { isWriteAllowed } from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +35,8 @@ export default async function LeaveDetailPage(props: {
     .eq("email", user?.email)
     .single();
 
-  const isApprover = (approvals ?? []).some(
+  const execRole = currentEmp?.role;
+  const isApprover = execRole !== "executive" && (approvals ?? []).some(
     (a: any) => a.approver_id === currentEmp?.id && a.status === "pending"
   );
 

@@ -3,8 +3,18 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isWriteAllowed } from "@/lib/rbac";
+
+async function checkWriteAccess() {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+  const { data: emp } = await supabase.from("employees").select("role").eq("email", user.email).single();
+  return emp ? isWriteAllowed(emp.role) : false;
+}
 
 export async function createSchedule(formData: FormData) {
+  if (!(await checkWriteAccess())) return { error: "Unauthorized" };
   const supabase = createClient();
 
   const scheduleData = {
@@ -22,6 +32,7 @@ export async function createSchedule(formData: FormData) {
 }
 
 export async function updateSchedule(id: string, formData: FormData) {
+  if (!(await checkWriteAccess())) return { error: "Unauthorized" };
   const supabase = createClient();
 
   const scheduleData = {
@@ -43,6 +54,7 @@ export async function assignShiftToSchedule(
   shiftId: string,
   action: "add" | "remove"
 ) {
+  if (!(await checkWriteAccess())) return { error: "Unauthorized" };
   const supabase = createClient();
 
   if (action === "add") {
@@ -67,6 +79,7 @@ export async function assignScheduleToEmployee(
   scheduleId: string,
   effectiveStart: string
 ) {
+  if (!(await checkWriteAccess())) return { error: "Unauthorized" };
   const supabase = createClient();
 
   const { error } = await supabase.from("employee_schedules").insert({

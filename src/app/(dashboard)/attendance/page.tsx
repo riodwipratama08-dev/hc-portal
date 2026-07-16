@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AttendanceList } from "./attendance-list";
+import { isWriteAllowed, canViewAllData } from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,8 @@ export default async function AttendancePage(props: {
     .eq("email", user?.email).single();
 
   const role = employee?.role ?? "employee";
-  const isAdminOrHr = role === "admin" || role === "hr";
+  const canWrite = isWriteAllowed(role);
+  const canViewAll = canViewAllData(role);
 
   if (!employee) {
     return <div className="p-8 text-lg text-red-600">Akun Anda belum terdaftar sebagai karyawan. Hubungi HR/Admin.</div>;
@@ -81,7 +83,7 @@ export default async function AttendancePage(props: {
     </>;
   }
 
-  if (isAdminOrHr) {
+  if (canViewAll) {
     summaryTitle = "Ringkasan Perusahaan";
     const today = new Date().toISOString().slice(0, 10);
     const { count: activeEmp } = await supabase.from("employees").select("*", { count: "exact" }).eq("status", "active");
@@ -104,6 +106,7 @@ export default async function AttendancePage(props: {
     .select("*, employees(id, full_name, employee_code, department_id, departments(name))")
     .limit(500);
 
+  // For employees & those who can only view self, filter by their ID
   if (role === "employee") {
     query = query.eq("employee_id", employee.id);
   } else if (role === "manager" && employee?.department_id) {
@@ -115,7 +118,7 @@ export default async function AttendancePage(props: {
   if (sp?.start_date) query = query.gte("attendance_date", sp.start_date);
   if (sp?.end_date) query = query.lte("attendance_date", sp.end_date);
   if (sp?.status) query = query.eq("status", sp.status);
-  if (sp?.department_id && isAdminOrHr) {
+  if (sp?.department_id && canViewAll) {
     query = query.in("employee_id",
       (await supabase.from("employees").select("id").eq("department_id", sp.department_id)).data?.map((e: any) => e.id) ?? []
     );
@@ -127,7 +130,7 @@ export default async function AttendancePage(props: {
 
   const { data: attendance } = await query;
 
-  const { data: departments } = isAdminOrHr
+  const { data: departments } = canViewAll
     ? await supabase.from("departments").select("*").order("name")
     : { data: [] };
 
@@ -135,7 +138,7 @@ export default async function AttendancePage(props: {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Attendance Records</h1>
-        {isAdminOrHr && (
+        {canWrite && (
           <a href="/attendance/import" className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
             Import CSV
           </a>
@@ -154,6 +157,7 @@ export default async function AttendancePage(props: {
         attendance={(attendance ?? []) as any[]}
         role={role}
         departments={(departments ?? []) as any[]}
+        canViewAll={canViewAll}
         currentStartDate={sp?.start_date ?? ""}
         currentEndDate={sp?.end_date ?? ""}
         currentDepartmentId={sp?.department_id ?? ""}
