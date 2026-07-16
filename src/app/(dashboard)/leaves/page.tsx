@@ -23,6 +23,10 @@ export default async function LeavesPage(props: {
   const role = emp?.role ?? "employee";
   const isAdminOrHr = role === "admin" || role === "hr";
 
+  if (!emp) {
+    return <div className="p-8 text-lg text-red-600">Akun Anda belum terdaftar sebagai karyawan. Hubungi HR/Admin.</div>;
+  }
+
   let query = supabase
     .from("leave_requests")
     .select("*, employees!inner(full_name, employee_code, department_id), leave_reasons(label), approvals(id, level, status, approver_id, employees!inner(full_name))")

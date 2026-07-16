@@ -42,13 +42,17 @@ export default async function AttendancePage(props: {
   const role = employee?.role ?? "employee";
   const isAdminOrHr = role === "admin" || role === "hr";
 
+  if (!employee) {
+    return <div className="p-8 text-lg text-red-600">Akun Anda belum terdaftar sebagai karyawan. Hubungi HR/Admin.</div>;
+  }
+
   let query = supabase
     .from("attendance")
     .select("*, employees(id, full_name, employee_code, department_id, departments(name))")
     .limit(500);
 
   if (role === "employee") {
-    query = query.eq("employee_id", employee!.id);
+    query = query.eq("employee_id", employee.id);
   } else if (role === "manager" && employee?.department_id) {
     query = query.in(
       "employee_id",
