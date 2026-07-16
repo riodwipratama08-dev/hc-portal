@@ -3,16 +3,14 @@
 import { useState, useTransition, useRef } from "react";
 import { confirmImport } from "./actions";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  normalizeTime, determineStatusAndRemarks, calcLateMinutes,
+} from "@/lib/attendance-logic";
 
 interface PreviewRow {
   line: number;
@@ -50,18 +48,6 @@ function parseCSVLine(line: string): string[] {
   return result;
 }
 
-function convertDateFormat(dateStr: string): string {
-  const trimmed = dateStr.trim();
-  const parts = trimmed.split("-");
-  if (parts.length === 3 && parts[0].length === 2) return `${parts[2]}-${parts[1]}-${parts[0]}`;
-  return trimmed;
-}
-
-function normalizeTime(val: string): string {
-  if (!val || val.trim() === "" || val.trim() === "00:00:00") return "";
-  return val.trim();
-}
-
 function parseYesNo(val: string): string {
   const v = val?.trim().toLowerCase() ?? "";
   if (v === "y" || v === "yes" || v === "1" || v === "ya" ||
@@ -69,62 +55,11 @@ function parseYesNo(val: string): string {
   return "0";
 }
 
-function isDayOffShift(shiftName: string | null): boolean {
-  if (!shiftName) return false;
-  const lower = shiftName.toLowerCase().trim();
-  const keywords = [
-    "libur", "hari raya", "tgl merah", "off", "holiday",
-    "idul fitri", "idul adha", "tahun baru", "maulid", "isra", "waisak",
-    "nyepi", "kenaikan", "isa almasih", "kemerdekaan", "natal", "imlek",
-    "paskah", "kurban", "hijriah", "cuti bersama", "proklamasi",
-    "wali", "lahir pancasila",
-  ];
-  return keywords.some((k) => lower.includes(k));
-}
-
-function isSunday(dateStr: string): boolean {
-  if (!dateStr) return false;
-  const parts = dateStr.split("-");
-  if (parts.length !== 3) return false;
-  const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-  return d.getDay() === 0;
-}
-
-function isTidakHadirSchedule(scheduleName: string | null): boolean {
-  if (!scheduleName) return false;
-  const lower = scheduleName.toLowerCase().trim();
-  return lower === "tidak hadir" || lower.includes("tidak hadir");
-}
-
-function determineStatusAndRemarks(row: any, attendanceDate: string): { status: string; remarks: string } {
-  const actualIn = normalizeTime(row.actual_check_in);
-  const actualOut = normalizeTime(row.actual_check_out);
-  const shiftIsDayOff = isDayOffShift(row.shift_name);
-  const isHoliday = row.is_public_holiday === "1";
-  const isRoutineDayOff = row.is_routine_day_off === "1";
-  const isAnyDayOff = isHoliday || isRoutineDayOff || shiftIsDayOff;
-
-  if (isHoliday && !actualIn && !actualOut) return { status: "libur_umum", remarks: "Libur Umum" };
-  if ((isRoutineDayOff || shiftIsDayOff) && !actualIn && !actualOut) return { status: "libur_rutin", remarks: "Libur" };
-
-  if (isAnyDayOff && actualIn) {
-    if (isSunday(attendanceDate)) return { status: "hadir_lembur", remarks: "Hadir (lembur)" };
-    return { status: "hadir", remarks: "-" };
-  }
-
-  if (isTidakHadirSchedule(row.schedule_name)) return { status: "tidak_hadir", remarks: "Tidak Hadir" };
-  if (!actualIn) return { status: "tidak_hadir", remarks: "Tidak scan masuk" };
-  if (actualIn && !actualOut) return { status: "tidak_hadir", remarks: "Tidak scan pulang" };
-  return { status: "hadir", remarks: "-" };
-}
-
-function calcLateMinutes(scheduled: string, actual: string): number {
-  const s = normalizeTime(scheduled);
-  const a = normalizeTime(actual);
-  if (!s || !a) return 0;
-  const [sh, sm] = s.split(":").map(Number);
-  const [ah, am] = a.split(":").map(Number);
-  return Math.max(0, (ah * 60 + am) - (sh * 60 + sm));
+function convertDateFormat(dateStr: string): string {
+  const trimmed = dateStr.trim();
+  const parts = trimmed.split("-");
+  if (parts.length === 3 && parts[0].length === 2) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  return trimmed;
 }
 
 function statusBadgeVariant(status: string): "success" | "danger" | "gray" | "orange" {
@@ -201,7 +136,15 @@ export function ImportForm({
         remarks: cols[30]?.trim() || null,
       };
 
-      const { status, remarks: rm } = determineStatusAndRemarks(row, attendanceDate);
+      const { status, remarks: rm } = determineStatusAndRemarks({
+        attendance_date: attendanceDate,
+        shift_name: row.shift_name,
+        schedule_name: row.schedule_name,
+        actual_check_in: row.actual_check_in,
+        actual_check_out: row.actual_check_out,
+        is_public_holiday: row.is_public_holiday === "1",
+        is_routine_day_off: row.is_routine_day_off === "1",
+      });
       row._status = status; row._remarks = rm;
       row._late = calcLateMinutes(row.scheduled_check_in, row.actual_check_in);
       if (!match) row._match = false;
