@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { updateDepartment, createDepartment } from "./actions";
+import { updateDepartment, createDepartment, deleteDepartment } from "./actions";
 
 export function DeptManager({ departments }: { departments: any[] }) {
   const [editId, setEditId] = useState<string | null>(null);
@@ -55,7 +55,16 @@ export function DeptManager({ departments }: { departments: any[] }) {
             ) : (
               <div className="flex items-center justify-between">
                 <div><p className="font-medium text-sm">{d.name}</p><p className="text-xs text-muted-foreground">{d.code}</p></div>
-                <Button size="sm" variant="outline" onClick={() => { setEditId(d.id); setName(d.name); }}>Rename</Button>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => { setEditId(d.id); setName(d.name); }}>Rename</Button>
+                  <Button size="sm" variant="destructive" onClick={async () => {
+                    if (!confirm(`Delete "${d.name}"? This cannot be undone.`)) return;
+                    setMsg(""); startTransition(async () => {
+                      const r = await deleteDepartment(d.id);
+                      if (r?.success) { window.location.reload(); } else setMsg(r?.error || "Error");
+                    });
+                  }}>Delete</Button>
+                </div>
               </div>
             )}
           </CardContent>

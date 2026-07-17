@@ -30,3 +30,19 @@ export async function createDepartment(name: string) {
   revalidatePath("/settings/departments");
   return { success: true };
 }
+
+export async function deleteDepartment(id: string) {
+  if (!(await checkAdminOrHr())) return { error: "Unauthorized" };
+  const supabase = createClient();
+
+  // Check if any employees still reference this department
+  const { count: empCount } = await supabase.from("employees").select("id", { count: "exact", head: true }).eq("department_id", id);
+  if (empCount && empCount > 0) {
+    return { error: `Cannot delete: ${empCount} employee(s) still in this department. Move them first.` };
+  }
+
+  const { error } = await supabase.from("departments").delete().eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/settings/departments");
+  return { success: true };
+}
