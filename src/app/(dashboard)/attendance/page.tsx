@@ -141,6 +141,36 @@ export default async function AttendancePage(props: {
     ? await supabase.from("departments").select("*").order("name")
     : { data: [] };
 
+  // Date range info & available dates for calendar highlight
+  let dateRangeText = "";
+  let availableDates: string[] = [];
+
+  const { data: importRanges } = await supabase
+    .from("attendance_imports")
+    .select("period_start, period_end")
+    .order("period_start", { ascending: true });
+
+  if (importRanges && importRanges.length > 0) {
+    const ranges = importRanges.map((r: any) => {
+      const s = new Date(r.period_start).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+      const e = new Date(r.period_end).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+      return `${s} – ${e}`;
+    });
+    dateRangeText = ranges.length === 1
+      ? `Data tersedia dari ${ranges[0]}`
+      : `Data tersedia dalam ${ranges.length} rentang:\n${ranges.join(", ")}`;
+  }
+
+  // Get distinct dates with attendance data (for calendar highlights)
+  const { data: dateRows } = await supabase
+    .from("attendance")
+    .select("attendance_date")
+    .limit(500);
+
+  if (dateRows) {
+    availableDates = Array.from(new Set(dateRows.map((d: any) => d.attendance_date))).sort();
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -165,6 +195,8 @@ export default async function AttendancePage(props: {
         role={role}
         departments={(departments ?? []) as any[]}
         canViewAll={canViewAll}
+        dateRangeText={dateRangeText}
+        availableDates={availableDates}
         currentStartDate={sp?.start_date ?? ""}
         currentEndDate={sp?.end_date ?? ""}
         currentDepartmentId={sp?.department_id ?? ""}

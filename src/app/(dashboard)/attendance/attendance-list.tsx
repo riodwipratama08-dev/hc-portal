@@ -2,18 +2,19 @@
 
 import { useCallback, useState, useTransition } from "react";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { recordOvertime } from "./actions";
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
 
 function fmtTime(t: string | null): string {
   if (!t) return "-";
@@ -70,24 +71,56 @@ function MinuteBadge({ minutes }: { minutes: number }) {
   return <span className="inline-block rounded bg-yellow-100 px-1.5 py-0.5 text-xs font-semibold text-yellow-800">{minutes}m</span>;
 }
 
+function DatePicker({ value, onChange, highlightDates, label }: {
+  value: string; onChange: (v: string) => void; highlightDates: Date[]; label: string;
+}) {
+  const date = value ? new Date(value + "T00:00:00") : undefined;
+
+  return (
+    <div>
+      <label className="block text-xs font-medium mb-1">{label}</label>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" className={cn("h-9 w-full justify-start text-left font-normal", !date && "text-muted-foreground")}>
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            {date ? format(date, "dd MMM yyyy") : "Pilih tanggal"}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={date}
+            onSelect={(d) => onChange(d ? format(d, "yyyy-MM-dd") : "")}
+            highlightDates={highlightDates}
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
 export function AttendanceList({
   attendance, role, departments,
   currentStartDate, currentEndDate, currentDepartmentId, currentStatus,
-  sortBy, sortDir,
+  sortBy, sortDir, canViewAll, dateRangeText, availableDates,
 }: {
   attendance: any[]; role: string; departments: any[];
   currentStartDate: string; currentEndDate: string;
   currentDepartmentId: string; currentStatus: string;
   sortBy: string; sortDir: string;
-  canViewAll?: boolean;
+  canViewAll?: boolean; dateRangeText?: string; availableDates?: string[];
 }) {
   const isWriteAccess = role === "admin" || role === "hr";
   const isManager = role === "manager";
 
+  const [startDate, setStartDate] = useState(currentStartDate);
+  const [endDate, setEndDate] = useState(currentEndDate);
   const [otFormId, setOtFormId] = useState<string | null>(null);
   const [otError, setOtError] = useState<string | null>(null);
   const [otSuccess, setOtSuccess] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const highlightDates = (availableDates ?? []).map((d) => new Date(d + "T00:00:00"));
 
   const buildUrl = useCallback((overrides: Record<string, string>) => {
     const p = new URLSearchParams();
@@ -108,26 +141,19 @@ export function AttendanceList({
     window.location.href = buildUrl({ sort_by: column, sort_dir: nextDir });
   }
 
-  function handleFilter(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const form = e.currentTarget;
+  function handleFilter() {
     const p = new URLSearchParams();
-    const start = (form.elements.namedItem("start_date") as HTMLInputElement)?.value;
-    const end = (form.elements.namedItem("end_date") as HTMLInputElement)?.value;
-    const dept = (form.elements.namedItem("department_id") as HTMLSelectElement)?.value;
-    const status = (form.elements.namedItem("status") as HTMLSelectElement)?.value;
-    if (start) p.set("start_date", start);
-    if (end) p.set("end_date", end);
-    if (dept) p.set("department_id", dept);
-    if (status) p.set("status", status);
+    if (startDate) p.set("start_date", startDate);
+    if (endDate) p.set("end_date", endDate);
+    if (currentDepartmentId) p.set("department_id", currentDepartmentId);
+    if (currentStatus) p.set("status", currentStatus);
     if (sortBy) p.set("sort_by", sortBy);
     if (sortDir) p.set("sort_dir", sortDir);
     window.location.href = `/attendance?${p.toString()}`;
   }
 
   async function handleOvertimeSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setOtError(null); setOtSuccess(null);
+    e.preventDefault(); setOtError(null); setOtSuccess(null);
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
       const result = await recordOvertime(formData);
@@ -140,21 +166,32 @@ export function AttendanceList({
 
   return (
     <div>
-      <form onSubmit={handleFilter} className="mb-6 flex flex-wrap gap-4 items-end">
-        <div><label className="block text-xs font-medium mb-1">Start Date</label>
-          <Input name="start_date" type="date" defaultValue={currentStartDate} className="h-9" /></div>
-        <div><label className="block text-xs font-medium mb-1">End Date</label>
-          <Input name="end_date" type="date" defaultValue={currentEndDate} className="h-9" /></div>
-        {(isWriteAccess || role === "executive") && <div><label className="block text-xs font-medium mb-1">Department</label>
-          <select name="department_id" defaultValue={currentDepartmentId} className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm">
-            <option value="">All</option>{departments.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
-          </select></div>}
-        <div><label className="block text-xs font-medium mb-1">Status</label>
-          <select name="status" defaultValue={currentStatus} className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm">
+      {/* Date range info */}
+      {dateRangeText && (
+        <p className="text-xs text-muted-foreground mb-4 italic">{dateRangeText}</p>
+      )}
+
+      <form onSubmit={(e) => { e.preventDefault(); handleFilter(); }} className="mb-6 flex flex-wrap gap-4 items-end">
+        <DatePicker value={startDate} onChange={setStartDate} highlightDates={highlightDates} label="Start Date" />
+        <DatePicker value={endDate} onChange={setEndDate} highlightDates={highlightDates} label="End Date" />
+        {(isWriteAccess || role === "executive") && (
+          <div>
+            <label className="block text-xs font-medium mb-1">Department</label>
+            <select name="department_id" defaultValue={currentDepartmentId} onChange={() => handleFilter()}
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm">
+              <option value="">All</option>{departments.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
+          </div>
+        )}
+        <div>
+          <label className="block text-xs font-medium mb-1">Status</label>
+          <select name="status" defaultValue={currentStatus} onChange={() => handleFilter()}
+            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm">
             <option value="">All</option><option value="hadir">Hadir</option><option value="hadir_lembur">Hadir (Lembur)</option>
             <option value="tidak_hadir">Tidak Hadir</option><option value="libur_umum">Libur Umum</option>
             <option value="libur_rutin">Libur Rutin</option><option value="cuti">Cuti</option><option value="izin">Izin</option>
-          </select></div>
+          </select>
+        </div>
         <Button type="submit" variant="secondary" size="sm">Filter</Button>
       </form>
 
@@ -199,14 +236,7 @@ export function AttendanceList({
                   <TableCell className="whitespace-nowrap font-mono">{fmtTime(a.actual_check_out)}</TableCell>
                   <TableCell className="text-center whitespace-nowrap"><MinuteBadge minutes={a.early_leave_minutes} /></TableCell>
                   <TableCell className="text-muted-foreground max-w-[200px] truncate">
-                    {a.remarks ?? "-"}
-                    {hasOT && (
-                      <span className="ml-2">
-                        <Badge variant="warning" className="text-[10px]">
-                          Lembur (SPV)
-                        </Badge>
-                      </span>
-                    )}
+                    {a.remarks ?? "-"}{hasOT && <span className="ml-2"><Badge variant="warning" className="text-[10px]">Lembur (SPV)</Badge></span>}
                   </TableCell>
                   {isManager && (
                     <TableCell className="whitespace-nowrap">
@@ -230,19 +260,12 @@ export function AttendanceList({
           <h3 className="text-sm font-semibold mb-3">Catat Lembur</h3>
           <form onSubmit={handleOvertimeSubmit} className="space-y-3">
             <input type="hidden" name="attendance_id" value={otFormId} />
-            {(() => {
-              const row = attendance.find((a: any) => a.id === otFormId);
-              return <input type="hidden" name="employee_id" value={row?.employees?.id ?? ""} />;
-            })()}
-            <div>
-              <label className="block text-xs font-medium mb-1">Menit Lembur (min. 30)</label>
-              <Input name="overtime_minutes" type="number" min={30} required className="h-9" placeholder="60" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1">Catatan</label>
+            {(() => { const row = attendance.find((a: any) => a.id === otFormId); return <input type="hidden" name="employee_id" value={row?.employees?.id ?? ""} />; })()}
+            <div><label className="block text-xs font-medium mb-1">Menit Lembur (min. 30)</label>
+              <Input name="overtime_minutes" type="number" min={30} required className="h-9" placeholder="60" /></div>
+            <div><label className="block text-xs font-medium mb-1">Catatan</label>
               <textarea name="notes" rows={2}
-                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" />
-            </div>
+                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-xs ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" /></div>
             {otError && <p className="text-xs text-destructive">{otError}</p>}
             {otSuccess && <p className="text-xs text-green-600">{otSuccess}</p>}
             <div className="flex gap-2">
