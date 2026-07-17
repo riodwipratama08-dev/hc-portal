@@ -56,8 +56,16 @@ export default async function DashboardLayout({
           {canWrite && <Link href="/attendance/import" className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Import CSV</Link>}
           {canWrite && <Link href="/leave-balances" className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Leave Balances</Link>}
           {canWrite && <Link href="/announcements/manage" className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Announcements</Link>}
-          {isOnlyAdmin && <Link href="/settings/core-values" className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Core Values</Link>}
-          {canWrite && <Link href="/settings/overtime" className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Overtime Settings</Link>}
+          {canWrite && (
+            <div>
+              <span className="block px-3 py-2 text-sm font-semibold text-gray-500 uppercase tracking-wide">Settings</span>
+              <div className="ml-2 border-l-2 border-gray-100 pl-3 space-y-0">
+                <Link href="/settings/departments" className="block rounded-md px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100">Departments</Link>
+                <Link href="/settings/overtime" className="block rounded-md px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100">Overtime</Link>
+                {isOnlyAdmin && <Link href="/settings/core-values" className="block rounded-md px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100">Core Values</Link>}
+              </div>
+            </div>
+          )}
         </nav>
         <div className="pt-8 border-t">
           <p className="text-xs text-gray-500">

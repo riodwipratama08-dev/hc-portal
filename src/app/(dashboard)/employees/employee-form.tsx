@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PositionCombobox } from "@/components/position-combobox";
 
 interface PositionWithDept extends Position {
   departments?: { name: string };
@@ -36,6 +37,8 @@ export function EmployeeForm({
 }) {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [selectedDept, setSelectedDept] = useState(defaultValues?.department_id ?? "");
+  const [selectedPos, setSelectedPos] = useState(defaultValues?.position_id ?? "");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -160,7 +163,8 @@ export function EmployeeForm({
                 id="department_id"
                 name="department_id"
                 required
-                defaultValue={defaultValues?.department_id ?? ""}
+                value={selectedDept}
+                onChange={(e) => { setSelectedDept(e.target.value); setSelectedPos(""); }}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <option value="">Select department</option>
@@ -172,24 +176,15 @@ export function EmployeeForm({
               </select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="position_id">
-                Position <span className="text-destructive">*</span>
-              </Label>
-              <select
-                id="position_id"
-                name="position_id"
-                required
-                defaultValue={defaultValues?.position_id ?? ""}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              >
-                <option value="">Select position</option>
-                {positions.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.title}
-                    {p.departments ? ` (${p.departments.name})` : ""}
-                  </option>
-                ))}
-              </select>
+              <Label>Position <span className="text-destructive">*</span></Label>
+              <input type="hidden" name="position_id" value={selectedPos} />
+              <PositionCombobox
+                positions={positions.map((p) => ({ id: p.id, title: p.title, level: p.level, department_id: p.department_id }))}
+                selected={selectedPos}
+                departmentId={selectedDept}
+                onSelect={setSelectedPos}
+                disabled={!selectedDept}
+              />
             </div>
           </div>
         </CardContent>
