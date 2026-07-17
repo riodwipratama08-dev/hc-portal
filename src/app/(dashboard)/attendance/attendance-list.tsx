@@ -124,6 +124,8 @@ export function AttendanceList({
 
   const buildUrl = useCallback((overrides: Record<string, string>) => {
     const p = new URLSearchParams();
+    // Preserve tab param from current URL (for manager split view)
+    try { const pTab = new URLSearchParams(window.location.search).get("tab"); if (pTab) p.set("tab", pTab); } catch {}
     if (currentStartDate) p.set("start_date", currentStartDate);
     if (currentEndDate) p.set("end_date", currentEndDate);
     if (currentDepartmentId) p.set("department_id", currentDepartmentId);
@@ -143,6 +145,7 @@ export function AttendanceList({
 
   function handleFilter() {
     const p = new URLSearchParams();
+    try { const pTab = new URLSearchParams(window.location.search).get("tab"); if (pTab) p.set("tab", pTab); } catch {}
     if (startDate) p.set("start_date", startDate);
     if (endDate) p.set("end_date", endDate);
     if (currentDepartmentId) p.set("department_id", currentDepartmentId);

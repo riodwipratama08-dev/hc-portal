@@ -139,10 +139,10 @@ export default async function AttendancePage(props: {
       {isManager && (
         <div className="flex gap-4 border-b pb-2">
           <Link href="/attendance?tab=me" className={`text-sm font-medium pb-1 border-b-2 transition-colors ${tab === "me" ? "border-teal-600 text-teal-700" : "border-transparent text-gray-500 hover:text-gray-700"}`}>
-            Absensi Saya
+            My Attendance
           </Link>
           <Link href="/attendance?tab=team" className={`text-sm font-medium pb-1 border-b-2 transition-colors ${tab === "team" ? "border-teal-600 text-teal-700" : "border-transparent text-gray-500 hover:text-gray-700"}`}>
-            Absensi Tim
+            Team Attendance
           </Link>
         </div>
       )}
