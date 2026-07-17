@@ -45,7 +45,14 @@ export default async function DashboardLayout({
           {canWrite && <Link href="/shifts" className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Shifts</Link>}
           {canWrite && <Link href="/schedules" className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Schedules</Link>}
           <Link href="/leaves" className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Leaves</Link>
-          <Link href="/attendance" className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Attendance</Link>
+          {role === "manager" ? (
+            <div className="space-y-0 ml-2 border-l-2 border-gray-100 pl-3">
+              <Link href="/attendance?tab=me" className="block rounded-md px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100">Absensi Saya</Link>
+              <Link href="/attendance?tab=team" className="block rounded-md px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100">Absensi Tim</Link>
+            </div>
+          ) : (
+            <Link href="/attendance" className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Attendance</Link>
+          )}
           {canWrite && <Link href="/attendance/import" className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Import CSV</Link>}
           {canWrite && <Link href="/leave-balances" className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Leave Balances</Link>}
           {canWrite && <Link href="/announcements/manage" className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Announcements</Link>}

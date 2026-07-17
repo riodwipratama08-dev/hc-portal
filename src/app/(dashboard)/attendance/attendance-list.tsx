@@ -102,13 +102,13 @@ function DatePicker({ value, onChange, highlightDates, label }: {
 export function AttendanceList({
   attendance, role, departments,
   currentStartDate, currentEndDate, currentDepartmentId, currentStatus,
-  sortBy, sortDir, canViewAll, dateRangeText, availableDates,
+  sortBy, sortDir, canViewAll, showOtButton, dateRangeText, availableDates,
 }: {
   attendance: any[]; role: string; departments: any[];
   currentStartDate: string; currentEndDate: string;
   currentDepartmentId: string; currentStatus: string;
   sortBy: string; sortDir: string;
-  canViewAll?: boolean; dateRangeText?: string; availableDates?: string[];
+  canViewAll?: boolean; showOtButton?: boolean; dateRangeText?: string; availableDates?: string[];
 }) {
   const isWriteAccess = role === "admin" || role === "hr";
   const isManager = role === "manager";
@@ -219,7 +219,7 @@ export function AttendanceList({
             {attendance.map((a: any) => {
               const otRecords = a.overtime_records ?? [];
               const hasOT = otRecords.length > 0;
-              const showOTButton = (isWriteAccess || isManager) && a.status === "hadir" && a.employees?.id;
+              const showOtLocal = showOtButton && a.status === "hadir" && a.employees?.id;
               return (
                 <TableRow key={a.id} className={cn("text-xs", rowClass(a.status))}>
                   <TableCell className="whitespace-nowrap">{a.attendance_date}</TableCell>
@@ -240,7 +240,7 @@ export function AttendanceList({
                   </TableCell>
                   {isManager && (
                     <TableCell className="whitespace-nowrap">
-                      {showOTButton && otFormId !== a.id && (
+                      {showOtLocal && otFormId !== a.id && (
                         <Button variant="outline" size="sm" className="text-xs h-7"
                           onClick={() => { setOtFormId(a.id); setOtError(null); setOtSuccess(null); }}>
                           Catat Lembur
