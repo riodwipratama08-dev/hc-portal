@@ -25,7 +25,7 @@ export default async function ImportAttendancePage() {
       <p className="mb-6 text-sm text-gray-500">
         Upload CSV file exported from fingerprint machine (delimiter: semicolon)
       </p>
-      <ImportForm employeeMap={employeeMap} />
+      <ImportForm employees={employees ?? []} employeeMap={employeeMap} />
     </div>
   );
 }

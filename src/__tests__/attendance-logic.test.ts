@@ -5,6 +5,7 @@ import {
   calcEarlyLeaveMinutes,
   isDayOffShift,
   isSunday,
+  normalizeNip,
   type StatusInput,
 } from "@/lib/attendance-logic";
 
@@ -148,4 +149,14 @@ describe("isSunday", () => {
   it("2026-07-19 is Sunday", () => { expect(isSunday("2026-07-19")).toBe(true); });
   it("2026-07-20 is Monday", () => { expect(isSunday("2026-07-20")).toBe(false); });
   it("2026-07-18 is Saturday", () => { expect(isSunday("2026-07-18")).toBe(false); });
+});
+
+describe("normalizeNip", () => {
+  it("strips leading zeros", () => { expect(normalizeNip("0425146")).toBe("425146"); });
+  it("leaves unchanged when no leading zeros", () => { expect(normalizeNip("425146")).toBe("425146"); });
+  it("strips multiple leading zeros", () => { expect(normalizeNip("000425146")).toBe("425146"); });
+  it("zero-only NIP becomes empty", () => { expect(normalizeNip("0")).toBe(""); });
+  it("empty string stays empty", () => { expect(normalizeNip("")).toBe(""); });
+  it("0225138 becomes 225138", () => { expect(normalizeNip("0225138")).toBe("225138"); });
+  it("225138 stays 225138", () => { expect(normalizeNip("225138")).toBe("225138"); });
 });

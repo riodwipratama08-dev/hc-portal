@@ -1,3 +1,7 @@
+export function normalizeNip(nip: string): string {
+  return nip.replace(/^0+/, "");
+}
+
 export function normalizeTime(val: string): string | null {
   if (!val || val.trim() === "" || val.trim() === "00:00:00") return null;
   return val.trim();

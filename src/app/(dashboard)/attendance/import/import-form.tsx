@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  normalizeTime, determineStatusAndRemarks, calcLateMinutes,
+  normalizeTime, determineStatusAndRemarks, calcLateMinutes, normalizeNip,
 } from "@/lib/attendance-logic";
 
 interface PreviewRow {
@@ -78,8 +78,11 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export function ImportForm({
-  employeeMap,
-}: { employeeMap: Record<string, { id: string; full_name: string }> }) {
+  employees, employeeMap,
+}: {
+  employees: { id: string; employee_code: string; full_name: string }[];
+  employeeMap: Record<string, { id: string; full_name: string }>;
+}) {
   const [rows, setRows] = useState<PreviewRow[]>([]);
   const [fileName, setFileName] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -106,7 +109,13 @@ export function ImportForm({
       if (cols.length < 5) continue;
       const nip = cols[4]?.trim() ?? cols[5]?.trim() ?? "";
       const attendanceDate = cols[0]?.trim() ? convertDateFormat(cols[0].trim()) : "";
-      const match = employeeMap[nip];
+      // Match: try exact employee_code first, then normalized (strip leading zeros)
+      let match = employeeMap[nip];
+      if (!match) {
+        const normalized = normalizeNip(nip);
+        const found = employees.find((e: any) => normalizeNip(e.employee_code) === normalized);
+        if (found) match = { id: found.id, full_name: found.full_name };
+      }
       const dupKey = `${nip}_${attendanceDate}`;
       const isDup = seen.has(dupKey);
       seen.add(dupKey);
