@@ -103,12 +103,14 @@ export function AttendanceList({
   attendance, role, departments,
   currentStartDate, currentEndDate, currentDepartmentId, currentStatus,
   sortBy, sortDir, canViewAll, dateRangeText, availableDates, currentName,
+  currentPage, pageSize, totalCount,
 }: {
   attendance: any[]; role: string; departments: any[];
   currentStartDate: string; currentEndDate: string;
   currentDepartmentId: string; currentStatus: string;
   sortBy: string; sortDir: string;
   canViewAll?: boolean; dateRangeText?: string; availableDates?: string[]; currentName?: string;
+  currentPage?: number; pageSize?: number; totalCount?: number;
 }) {
   const isWriteAccess = role === "admin" || role === "hr";
   const isManager = role === "manager";
@@ -208,7 +210,7 @@ export function AttendanceList({
           </TableRow></TableHeader>
           <TableBody>
             {attendance.length === 0 && (
-              <TableRow><TableCell colSpan={isManager ? 13 : 12} className="text-center text-muted-foreground py-8 text-xs">No attendance records found.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground py-8 text-xs">No attendance records found.</TableCell></TableRow>
             )}
             {attendance.map((a: any) => (
                 <TableRow key={a.id} className={cn("text-xs", rowClass(a.status))}>
@@ -216,9 +218,7 @@ export function AttendanceList({
                   <TableCell className="font-mono whitespace-nowrap">{a.employees?.employee_code ?? "-"}</TableCell>
                   <TableCell className="whitespace-nowrap">{a.shift_name ?? "-"}</TableCell>
                   <TableCell className="whitespace-nowrap font-medium">{a.employees?.full_name ?? "-"}</TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    <Badge variant={statusBadgeVariant(a.status)} className="text-xs">{STATUS_LABEL[a.status] ?? a.status}</Badge>
-                  </TableCell>
+                  <TableCell className="whitespace-nowrap"><Badge variant={statusBadgeVariant(a.status)} className="text-xs">{STATUS_LABEL[a.status] ?? a.status}</Badge></TableCell>
                   <TableCell className="whitespace-nowrap text-muted-foreground">{fmtTime(a.scheduled_check_in)}</TableCell>
                   <TableCell className="whitespace-nowrap font-mono">{fmtTime(a.actual_check_in)}</TableCell>
                   <TableCell className="text-center whitespace-nowrap"><MinuteBadge minutes={a.late_minutes} /></TableCell>
@@ -231,6 +231,21 @@ export function AttendanceList({
           </TableBody>
         </Table>
       </div>
+
+      {/* Pagination */}
+      {totalCount !== undefined && totalCount > pageSize! && (
+        <div className="flex items-center justify-between mt-4 text-xs text-muted-foreground">
+          <span>{totalCount} total records (page {currentPage} of {Math.ceil(totalCount / pageSize!)})</span>
+          <div className="flex gap-2">
+            {currentPage! > 1 && (
+              <Button variant="outline" size="sm" className="text-xs" onClick={() => { const p = new URLSearchParams(window.location.search); p.set("page", String(currentPage! - 1)); window.location.href = `/attendance?${p.toString()}`; }}>Previous</Button>
+            )}
+            {currentPage! < Math.ceil(totalCount / pageSize!) && (
+              <Button variant="outline" size="sm" className="text-xs" onClick={() => { const p = new URLSearchParams(window.location.search); p.set("page", String(currentPage! + 1)); window.location.href = `/attendance?${p.toString()}`; }}>Next</Button>
+            )}
+          </div>
+        </div>
+      )}
 
       {}
     </div>

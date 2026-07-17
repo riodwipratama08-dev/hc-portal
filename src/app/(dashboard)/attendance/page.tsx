@@ -17,6 +17,7 @@ export default async function AttendancePage(props: {
   searchParams?: Promise<{
     start_date?: string; end_date?: string; department_id?: string;
     status?: string; sort_by?: string; sort_dir?: string; tab?: string; name?: string;
+    page?: string; pageSize?: string;
   }>;
 }) {
   const supabase = createClient();
@@ -80,11 +81,17 @@ export default async function AttendancePage(props: {
     summaryCards = <><Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Karyawan Aktif</CardTitle></CardHeader><CardContent><p className="text-3xl font-bold">{activeEmp ?? 0}</p></CardContent></Card><Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Hadir Hari Ini</CardTitle></CardHeader><CardContent><p className="text-3xl font-bold text-green-600">{hadir}</p></CardContent></Card><Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Tidak Hadir Hari Ini</CardTitle></CardHeader><CardContent><p className="text-3xl font-bold text-red-600">{tidakHadir}</p></CardContent></Card><Card><CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Tingkat Kehadiran</CardTitle></CardHeader><CardContent><p className="text-3xl font-bold text-blue-600">{rate}%</p></CardContent></Card></>;
   }
 
-  // ===== ATTENDANCE TABLE =====
+  // ===== ATTENDANCE TABLE with pagination =====
+  const page = Math.max(1, parseInt(sp?.page ?? "1", 10) || 1);
+  const pageSize = Math.min(100, Math.max(10, parseInt(sp?.pageSize ?? "50", 10) || 50));
+
+  // Get total count for pagination display
+  let countQuery = supabase.from("attendance").select("id", { count: "exact", head: true });
+  // Apply same filters to count query (simplified — just use the main query's count)
+
   let query = supabase
     .from("attendance")
-    .select("*, employees(id, full_name, employee_code, department_id, departments(name))")
-    .limit(500);
+    .select("*, employees(id, full_name, employee_code, department_id, departments(name))", { count: "exact" });
 
   if (role === "employee") {
     query = query.eq("employee_id", employee.id);
@@ -112,7 +119,12 @@ export default async function AttendancePage(props: {
   if (sortBy) { query = query.order(sortBy, { ascending }); }
   else { query = query.order("employees(full_name)", { ascending: true }).order("attendance_date", { ascending: false }); }
 
-  const { data: attendance } = await query;
+  // Apply pagination range
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+  query = query.range(from, to);
+
+  const { data: attendance, count: totalCount } = await query;
 
   const { data: departments } = canViewAll
     ? await supabase.from("departments").select("*").order("name")
@@ -166,6 +178,9 @@ export default async function AttendancePage(props: {
         canViewAll={canViewAll}
         dateRangeText={dateRangeText}
         currentName={sp?.name ?? ""}
+        currentPage={page}
+        pageSize={pageSize}
+        totalCount={totalCount ?? 0}
         availableDates={availableDates}
         currentStartDate={sp?.start_date ?? ""}
         currentEndDate={sp?.end_date ?? ""}
