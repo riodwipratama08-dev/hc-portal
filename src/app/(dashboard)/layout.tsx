@@ -57,6 +57,7 @@ export default async function DashboardLayout({
           {canWrite && <Link href="/leave-balances" className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Leave Balances</Link>}
           {canWrite && <Link href="/announcements/manage" className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Announcements</Link>}
           {isOnlyAdmin && <Link href="/settings/core-values" className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Core Values</Link>}
+          {canWrite && <Link href="/settings/overtime" className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Overtime Settings</Link>}
         </nav>
         <div className="pt-8 border-t">
           <p className="text-xs text-gray-500">

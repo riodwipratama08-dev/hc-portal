@@ -23,8 +23,8 @@ export default async function OvertimePage(props: {
 
   // Get overtime settings per department
   const { data: otSettings } = await supabase.from("overtime_settings").select("*");
-  const settingsMap: Record<string, number> = {};
-  for (const s of (otSettings ?? [])) settingsMap[s.department_id] = s.minimum_overtime_minutes;
+  const settingsMap: Record<string, { min: number; type: string }> = {};
+  for (const s of (otSettings ?? [])) settingsMap[s.department_id] = { min: s.minimum_overtime_minutes, type: s.overtime_type };
 
   // Get already confirmed records
   const { data: confirmedRecords } = await supabase.from("overtime_records").select("attendance_id").eq("status", "approved");
@@ -45,19 +45,20 @@ export default async function OvertimePage(props: {
 
   const { data: rows } = await query as { data: any[] | null };
 
-  // Calculate candidates
+  // Calculate candidates — exclude departments with 'tunjangan_bulanan' type
   const candidates = (rows ?? []).map((r: any) => {
-    const deptMin = settingsMap[r.employees?.department_id] ?? 30;
+    const deptConfig = settingsMap[r.employees?.department_id] ?? { min: 30, type: "per_hari" };
+    if (deptConfig.type === "tunjangan_bulanan") return null;
     const ot = isOvertimeCandidate({
       scheduled_check_in: r.scheduled_check_in,
       actual_check_in: r.actual_check_in,
       scheduled_check_out: r.scheduled_check_out,
       actual_check_out: r.actual_check_out,
       status: r.status,
-      minimum_overtime_minutes: deptMin,
+      minimum_overtime_minutes: deptConfig.min,
     });
-    return { ...r, _ot: ot, _dept_min: deptMin, _confirmed: confirmedIds.has(r.id) };
-  }).filter((r: any) => r._ot.isCandidate && !r._confirmed);
+    return { ...r, _ot: ot, _dept_min: deptConfig.min, _confirmed: confirmedIds.has(r.id) };
+  }).filter((r: any) => r !== null && r._ot.isCandidate && !r._confirmed);
 
   // Get history
   const { data: history } = await supabase
@@ -75,7 +76,7 @@ export default async function OvertimePage(props: {
         history={(history ?? []) as any[]}
         currentUserId={emp.id}
         activeTab={tab}
-        deptMinMap={settingsMap}
+        deptMinMap={settingsMap as any}
       />
     </div>
   );

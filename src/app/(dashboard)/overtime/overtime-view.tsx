@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { confirmOvertime } from "./actions";
 import Link from "next/link";
 
@@ -12,26 +12,32 @@ export function OvertimeView({
   candidates, history, currentUserId, activeTab, deptMinMap,
 }: {
   candidates: any[]; history: any[]; currentUserId: string;
-  activeTab: string; deptMinMap: Record<string, number>;
+  activeTab: string; deptMinMap: Record<string, any>;
 }) {
+  const [expandedPerson, setExpandedPerson] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [otMinutes, setOtMinutes] = useState("");
   const [otNotes, setOtNotes] = useState("");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
+  // Group candidates by person
+  const peopleMap = new Map<string, { emp: any; items: any[] }>();
+  for (const c of candidates) {
+    const key = c.employees?.id || "unknown";
+    if (!peopleMap.has(key)) peopleMap.set(key, { emp: c.employees, items: [] });
+    peopleMap.get(key)!.items.push(c);
+  }
+  const peopleList = Array.from(peopleMap.values());
+
   async function handleConfirm(attendanceId: string, employeeId: string) {
     const minutes = parseInt(otMinutes, 10);
     const deptId = candidates.find((c: any) => c.id === attendanceId)?.employees?.department_id;
-    const minMin = deptId ? (deptMinMap[deptId] ?? 30) : 30;
-    if (isNaN(minutes) || minutes < minMin) {
-      setError(`Must be at least ${minMin} minutes.`);
-      return;
-    }
+    const cfg = deptId ? (deptMinMap[deptId] ?? { min: 30 }) : { min: 30 };
+    if (isNaN(minutes) || minutes < cfg.min) { setError(`Must be at least ${cfg.min} minutes.`); return; }
     setError(""); startTransition(async () => {
       const r = await confirmOvertime(attendanceId, employeeId, minutes, otNotes);
-      if (r?.error) setError(r.error);
-      else { setConfirmId(null); setOtMinutes(""); setOtNotes(""); window.location.reload(); }
+      if (r?.error) setError(r.error); else { setConfirmId(null); setOtMinutes(""); setOtNotes(""); window.location.reload(); }
     });
   }
 
@@ -39,7 +45,7 @@ export function OvertimeView({
     <div>
       <div className="flex gap-4 border-b pb-2 mb-6">
         <Link href="/overtime?tab=candidates" className={`text-sm font-medium pb-1 border-b-2 ${activeTab === "candidates" ? "border-teal-600 text-teal-700" : "border-transparent text-gray-500"}`}>
-          Candidates ({candidates.length})
+          Candidates ({peopleList.length})
         </Link>
         <Link href="/overtime?tab=history" className={`text-sm font-medium pb-1 border-b-2 ${activeTab === "history" ? "border-teal-600 text-teal-700" : "border-transparent text-gray-500"}`}>
           History ({history.length})
@@ -48,52 +54,65 @@ export function OvertimeView({
 
       {activeTab === "candidates" && (
         <div className="space-y-3">
-          {candidates.length === 0 && <p className="text-sm text-muted-foreground">No overtime candidates found.</p>}
-          {candidates.map((c: any) => (
-            <Card key={c.id} className={confirmId === c.id ? "border-teal-400" : ""}>
-              <CardContent className="py-4">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm">
-                    <p className="font-medium">{c.employees?.full_name} ({c.employees?.employee_code})</p>
-                    <p className="text-xs text-muted-foreground">{c.attendance_date} · {c.shift_name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Schedule: {c.scheduled_check_in?.slice(0,5)}-{c.scheduled_check_out?.slice(0,5)} |
-                      Actual: {c.actual_check_in?.slice(0,5)}-{c.actual_check_out?.slice(0,5)}
-                    </p>
-                    <div className="flex gap-2 mt-1">
-                      {c._ot.earlyMinutes >= 60 && <Badge variant="secondary" className="text-[10px]">{c._ot.earlyMinutes}m early</Badge>}
-                      {c._ot.lateMinutes >= (deptMinMap[c.employees?.department_id] ?? 30) && <Badge variant="secondary" className="text-[10px]">{c._ot.lateMinutes}m late</Badge>}
+          {peopleList.length === 0 && <p className="text-sm text-muted-foreground">No overtime candidates found.</p>}
+          {peopleList.map(({ emp, items }) => {
+            const isOpen = expandedPerson === emp?.id;
+            const deptName = emp?.departments?.name || "";
+            const deptCfg = emp?.department_id ? (deptMinMap[emp.department_id] ?? {}) : {};
+            const stillPending = items.filter((i: any) => !i._confirmed).length;
+            return (
+              <Card key={emp?.id} className={isOpen ? "border-teal-300" : ""}>
+                <CardContent className="py-3">
+                  <div className="flex items-center justify-between cursor-pointer" onClick={() => setExpandedPerson(isOpen ? null : emp?.id)}>
+                    <div className="text-sm">
+                      <p className="font-medium">{emp?.full_name} ({emp?.employee_code})</p>
+                      <p className="text-xs text-muted-foreground">{deptName} — {stillPending} day(s) with overtime potential</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-[10px]">{stillPending} pending</Badge>
+                      <span className="text-xs text-muted-foreground">{isOpen ? "▲" : "▼"}</span>
                     </div>
                   </div>
-                  <Button size="sm" variant="outline" className="text-xs" onClick={() => {
-                    setConfirmId(c.id); setOtMinutes(String(Math.max(c._ot.earlyMinutes, c._ot.lateMinutes, (deptMinMap[c.employees?.department_id] ?? 30))));
-                  }}>Confirm</Button>
-                </div>
-                {confirmId === c.id && (
-                  <div className="mt-3 pt-3 border-t space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <label className="text-xs font-medium">Minutes</label>
-                        <Input type="number" min={(deptMinMap[c.employees?.department_id] ?? 30)} value={otMinutes}
-                          onChange={(e) => setOtMinutes(e.target.value)} className="w-24 h-8 text-sm" />
-                      </div>
-                      <div className="flex-1">
-                        <label className="text-xs font-medium">Notes</label>
-                        <Input value={otNotes} onChange={(e) => setOtNotes(e.target.value)} placeholder="(optional)" className="h-8 text-sm" />
-                      </div>
+
+                  {isOpen && (
+                    <div className="mt-3 pt-3 border-t space-y-2">
+                      {items.map((c: any) => (
+                        <div key={c.id}>
+                          {confirmId === c.id ? (
+                            <div className="bg-gray-50 rounded p-3 space-y-2">
+                              <p className="text-xs text-muted-foreground">{c.attendance_date} · {c.shift_name}</p>
+                              <p className="text-xs">Schedule: {c.scheduled_check_in?.slice(0,5)}-{c.scheduled_check_out?.slice(0,5)} | Actual: {c.actual_check_in?.slice(0,5)}-{c.actual_check_out?.slice(0,5)}</p>
+                              <div className="flex items-center gap-3">
+                                <div><label className="text-xs font-medium">Minutes</label>
+                                  <Input type="number" value={otMinutes} onChange={(e) => setOtMinutes(e.target.value)} className="w-24 h-8 text-sm" /></div>
+                                <div className="flex-1"><label className="text-xs font-medium">Notes</label>
+                                  <Input value={otNotes} onChange={(e) => setOtNotes(e.target.value)} placeholder="(optional)" className="h-8 text-sm" /></div>
+                              </div>
+                              {error && <p className="text-xs text-red-600">{error}</p>}
+                              <div className="flex gap-2">
+                                <Button size="sm" disabled={isPending} onClick={() => handleConfirm(c.id, c.employees?.id)}>Confirm</Button>
+                                <Button size="sm" variant="ghost" onClick={() => setConfirmId(null)}>Cancel</Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between text-xs py-1.5 border-b last:border-0">
+                              <span className="text-muted-foreground">{c.attendance_date}</span>
+                              <span>{c.scheduled_check_in?.slice(0,5)}-{c.scheduled_check_out?.slice(0,5)} → {c.actual_check_in?.slice(0,5)}-{c.actual_check_out?.slice(0,5)}</span>
+                              <span className="text-yellow-700 font-medium">
+                                {c._ot.earlyMinutes >= 60 && `${c._ot.earlyMinutes}m early `}
+                                {c._ot.lateMinutes >= (deptCfg.min ?? 30) && `${c._ot.lateMinutes}m late`}
+                              </span>
+                              <Button size="sm" variant="outline" className="text-xs h-7" onClick={(e) => { e.stopPropagation(); setConfirmId(c.id); setOtMinutes(String(Math.max(c._ot.earlyMinutes, c._ot.lateMinutes, (deptCfg.min ?? 30)))); }}>Confirm</Button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                    {error && <p className="text-xs text-red-600">{error}</p>}
-                    <div className="flex gap-2">
-                      <Button size="sm" disabled={isPending} onClick={() => handleConfirm(c.id, c.employees?.id)}>
-                        {isPending ? "Saving..." : "Confirm Overtime"}
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => setConfirmId(null)}>Cancel</Button>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
