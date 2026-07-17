@@ -11,6 +11,10 @@ export function parseYesNo(val: string): boolean {
   );
 }
 
+function isLikelyTimeRange(text: string): boolean {
+  return /^\d{1,2}:\d{2}\s*[-–]\s*\d{1,2}:\d{2}$/.test(text.trim());
+}
+
 export function isDayOffShift(shiftName: string | null): boolean {
   if (!shiftName) return false;
   const lower = shiftName.toLowerCase().trim();
@@ -19,7 +23,8 @@ export function isDayOffShift(shiftName: string | null): boolean {
     "idul fitri", "idul adha", "tahun baru", "maulid", "isra", "waisak",
     "nyepi", "kenaikan", "isa almasih", "kemerdekaan", "natal", "imlek",
     "paskah", "kurban", "hijriah", "cuti bersama", "proklamasi",
-    "wali", "lahir pancasila",
+    "wali", "lahir pancasila", "hari buruh", "hari pahlawan",
+    "hari guru", "hari kartini", "hari santri",
   ];
   return keywords.some((k) => lower.includes(k));
 }
@@ -51,19 +56,34 @@ export interface StatusInput {
 export function determineStatusAndRemarks(row: StatusInput): { status: string; remarks: string } {
   const actualIn = normalizeTime(row.actual_check_in ?? "");
   const actualOut = normalizeTime(row.actual_check_out ?? "");
-  const shiftIsDayOff = isDayOffShift(row.shift_name);
+  const shiftName = row.shift_name;
+  const shiftIsDayOff = isDayOffShift(shiftName);
   const isHoliday = row.is_public_holiday;
   const isRoutineDayOff = row.is_routine_day_off;
   const isAnyDayOff = isHoliday || isRoutineDayOff || shiftIsDayOff;
 
+  // (1) Public holiday flag from CSV — no scans
   if (isHoliday && !actualIn && !actualOut) {
-    return { status: "libur_umum", remarks: "Libur Umum" };
+    return { status: "libur_umum", remarks: shiftName || "Libur Umum" };
   }
 
-  if ((isRoutineDayOff || shiftIsDayOff) && !actualIn && !actualOut) {
+  // (2) Routine day off flag — no scans
+  if (isRoutineDayOff && !actualIn && !actualOut) {
     return { status: "libur_rutin", remarks: "Libur" };
   }
 
+  // (3) CATCH-ALL: shift_name is NOT a time range AND no scans AND not "Libur Rutin"
+  //     → treat as national holiday (catches names like "Hari Buruh Internasional")
+  if (shiftName && !isLikelyTimeRange(shiftName) && shiftName.trim().toLowerCase() !== "libur rutin" && !actualIn && !actualOut) {
+    return { status: "libur_umum", remarks: shiftName };
+  }
+
+  // (4) shift text says day off (keyword match) — no scans
+  if (shiftIsDayOff && !actualIn && !actualOut) {
+    return { status: "libur_rutin", remarks: "Libur" };
+  }
+
+  // (5) Any day off BUT scanned in
   if (isAnyDayOff && actualIn) {
     if (isSunday(row.attendance_date)) {
       return { status: "hadir_lembur", remarks: "Hadir (lembur)" };
@@ -71,18 +91,25 @@ export function determineStatusAndRemarks(row: StatusInput): { status: string; r
     return { status: "hadir", remarks: "-" };
   }
 
+  // (6) Schedule explicitly says "Tidak Hadir"
   if (isTidakHadirSchedule(row.schedule_name)) {
     return { status: "tidak_hadir", remarks: "Tidak Hadir" };
   }
 
-  if (!actualIn) {
-    return { status: "tidak_hadir", remarks: "Tidak scan masuk" };
+  // (6) Normal shift — symmetrical hadir/tidak_hadir logic
+  if (!actualIn && !actualOut) {
+    return { status: "tidak_hadir", remarks: "Tidak Hadir" };
   }
 
   if (actualIn && !actualOut) {
     return { status: "hadir", remarks: "Tidak scan pulang" };
   }
 
+  if (!actualIn && actualOut) {
+    return { status: "hadir", remarks: "Tidak scan masuk" };
+  }
+
+  // Both scans present
   return { status: "hadir", remarks: "-" };
 }
 
