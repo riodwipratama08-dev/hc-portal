@@ -80,7 +80,7 @@ export function determineStatusAndRemarks(row: StatusInput): { status: string; r
   }
 
   if (actualIn && !actualOut) {
-    return { status: "tidak_hadir", remarks: "Tidak scan pulang" };
+    return { status: "hadir", remarks: "Tidak scan pulang" };
   }
 
   return { status: "hadir", remarks: "-" };

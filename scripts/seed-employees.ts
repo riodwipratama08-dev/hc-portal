@@ -35,14 +35,23 @@ function loadEnv() {
   }
 }
 
+function detectDelimiter(line: string): string {
+  const semicolon = (line.match(/;/g) || []).length;
+  const comma = (line.match(/,/g) || []).length;
+  return semicolon > comma ? ";" : ",";
+}
+
 function parseCSV(text: string): Record<string, string>[] {
   const lines = text.split(/\r?\n/).filter((l) => l.trim());
   if (lines.length < 2) return [];
-  const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
+  const delim = detectDelimiter(lines[0]);
+  const headers = lines[0].split(delim).map((h) => h.trim().toLowerCase());
   const rows: Record<string, string>[] = [];
   for (let i = 1; i < lines.length; i++) {
-    const cols = lines[i].split(",").map((c) => c.trim());
-    if (cols.length < headers.length) continue;
+    const cols = lines[i].split(delim).map((c) => c.trim());
+    if (cols.length < headers.length - 1) continue; // allow optional last col
+    // Pad cols to match header length
+    while (cols.length < headers.length) cols.push("");
     const row: Record<string, string> = {};
     headers.forEach((h, idx) => { row[h] = cols[idx] || ""; });
     if (row.nip) rows.push(row);
@@ -69,7 +78,7 @@ async function main() {
   const rows = parseCSV(fs.readFileSync(csvPath, "utf8"));
   console.log(`Found ${rows.length} rows\n`);
 
-  const VALID_ROLES = ["admin", "hr", "manager", "employee"];
+  const VALID_ROLES = ["admin", "hr", "manager", "employee", "executive"];
   const invalid = rows.filter((r) => !VALID_ROLES.includes(r.system_role));
   if (invalid.length > 0) {
     console.error("Invalid system_role:", invalid.map((r) => `${r.nip}:${r.system_role}`));

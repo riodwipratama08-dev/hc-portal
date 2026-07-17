@@ -78,12 +78,12 @@ describe("determineStatusAndRemarks", () => {
     expect(r.remarks).toBe("-");
   });
 
-  it("shift normal, scan masuk ada tapi scan pulang kosong → tidak_hadir + 'Tidak scan pulang'", () => {
+  it("shift normal, scan masuk ada tapi scan pulang kosong → hadir + 'Tidak scan pulang'", () => {
     const r = determineStatusAndRemarks(makeRow({
       shift_name: "07:00-16:00",
       actual_check_in: "07:05:00",
     }));
-    expect(r.status).toBe("tidak_hadir");
+    expect(r.status).toBe("hadir");
     expect(r.remarks).toBe("Tidak scan pulang");
   });
 

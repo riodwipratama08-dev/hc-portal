@@ -164,7 +164,7 @@ export function AttendanceList({
             <SortableHead column="date" label="Date" current={sortState} onClick={handleSort} />
             <TableHead className="whitespace-nowrap text-xs">NIP</TableHead>
             <SortableHead column="shift_name" label="Nama Shift" current={sortState} onClick={handleSort} />
-            <TableHead className="whitespace-nowrap text-xs">Nama</TableHead>
+            <SortableHead column="name" label="Nama" current={sortState} onClick={handleSort} />
             <SortableHead column="status" label="Status" current={sortState} onClick={handleSort} />
             <SortableHead column="check_in" label="Jam Masuk" current={sortState} onClick={handleSort} />
             <SortableHead column="actual_in" label="Absen Masuk" current={sortState} onClick={handleSort} />

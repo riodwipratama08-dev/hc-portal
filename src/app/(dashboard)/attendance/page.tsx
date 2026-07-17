@@ -6,7 +6,7 @@ import { isWriteAllowed, canViewAllData } from "@/lib/rbac";
 export const dynamic = "force-dynamic";
 
 const SORT_MAP: Record<string, string> = {
-  date: "attendance_date", shift_name: "shift_name", status: "status",
+  date: "attendance_date", name: "employees(full_name)", shift_name: "shift_name", status: "status",
   check_in: "scheduled_check_in", actual_in: "actual_check_in", late: "late_minutes",
   check_out: "scheduled_check_out", actual_out: "actual_check_out", early: "early_leave_minutes",
   remarks: "remarks",
@@ -124,9 +124,16 @@ export default async function AttendancePage(props: {
     );
   }
 
-  const sortBy = sp?.sort_by && SORT_MAP[sp.sort_by] ? SORT_MAP[sp.sort_by] : "attendance_date";
+  const sortBy = sp?.sort_by && SORT_MAP[sp.sort_by] ? SORT_MAP[sp.sort_by] : "";
   const ascending = sp?.sort_dir === "asc";
-  query = query.order(sortBy, { ascending });
+
+  if (sortBy) {
+    query = query.order(sortBy, { ascending });
+  } else {
+    // Default: name A-Z, then attendance_date newest first
+    query = query.order("employees(full_name)", { ascending: true });
+    query = query.order("attendance_date", { ascending: false });
+  }
 
   const { data: attendance } = await query;
 

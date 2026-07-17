@@ -1,14 +1,14 @@
 nip;full_name;department;position_title;position_level;system_role;email
-313002;Ela;Sales & Marketing;Sales & Marketing Supervisor;2;manager;heriyati@gmail.com
-617005;Sri;Inventory;Inventory Supervisor;2;manager;srihayati@gmail.com
-120017;Sinta;Production;Production Supervisor;2;manager;sintawidiana@gmail.com
-322053;Shafa;Creative;Creative Supervisor;2;manager;shafaraudhaghassany@gmail.com
-623077;Amel;Data Analyst;Data Analyst Lead;2;manager;amelia@gmail.com
-622055;Nining;Production;Sewing;1;employee;nining@gmail.com
-225138;Rio;General Support;Human Resources & General Affair;2;hr;mochriodwipratama@gmail.com
-525158;Ari;Sales & Marketing;Customer Service;1;employee;mochari@gmail.com
-425146;Astri;Inventory;PPIC Admin;1;employee;Astriaja@gmail.com
-1124133;Chelsi;Creative;Content Creator;1;employee;chelsi@gmail.com
-626214;Zaky;Data Analyst;Data Analyst Staff;1;employee;Zakyaja@gmail.com
-626001;Admin;General Support;System Administrator;3;admin;hrd.project.malilkids@gmail.com
-CEO001;Bu Heny;General Support;Chief Executive Officer;4;executive;buheny@gmail.com
+313002;Ela;Sales & Marketing;Sales & Marketing Supervisor;2;manager;heriyati@test.com
+617005;Sri;Inventory;Inventory Supervisor;2;manager;srihayati@test.com
+120017;Sinta;Production;Production Supervisor;2;manager;sintawidiana@test.com
+322053;Shafa;Creative;Creative Supervisor;2;manager;shafaraudhaghassany@test.com
+623077;Amel;Data Analyst;Data Analyst Lead;2;manager;amelia@test.com
+622055;Nining;Production;Sewing;1;employee;nining@test.com
+225138;Rio;General Support;Human Resources & General Affair;2;hr;mochriodwipratama@test.com
+525158;Ari;Sales & Marketing;Customer Service;1;employee;mochari@test.com
+425146;Astri;Inventory;PPIC Admin;1;employee;Astriaja@test.com
+1124133;Chelsi;Creative;Content Creator;1;employee;chelsi@test.com
+626214;Zaky;Data Analyst;Data Analyst Staff;1;employee;Zakyaja@test.com
+626001;Admin;General Support;System Administrator;3;admin;hrd.project.malilkids@test.com
+CEO001;Bu Heny;General Support;Chief Executive Officer;4;executive;buheny@test.com
