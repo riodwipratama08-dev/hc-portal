@@ -126,6 +126,45 @@ export function calcLateMinutes(scheduled: string | null, actual: string | null)
   return Math.max(0, (ah * 60 + am) - (sh * 60 + sm));
 }
 
+export function isOvertimeCandidate(row: {
+  scheduled_check_in: string | null;
+  actual_check_in: string | null;
+  scheduled_check_out: string | null;
+  actual_check_out: string | null;
+  status: string;
+  minimum_overtime_minutes: number;
+}): { isCandidate: boolean; earlyMinutes: number; lateMinutes: number } {
+  if (row.status !== "hadir") return { isCandidate: false, earlyMinutes: 0, lateMinutes: 0 };
+
+  const schedIn = normalizeTime(row.scheduled_check_in ?? "");
+  const actualIn = normalizeTime(row.actual_check_in ?? "");
+  const schedOut = normalizeTime(row.scheduled_check_out ?? "");
+  const actualOut = normalizeTime(row.actual_check_out ?? "");
+
+  const calcEarly = (): number => {
+    if (!schedIn || !actualIn) return 0;
+    const diff = timeToMinutes(schedIn) - timeToMinutes(actualIn);
+    return Math.max(0, diff);
+  };
+  const early = calcEarly();
+  const earlyCandidate = early >= 60;
+
+  const calcLateOT = (): number => {
+    if (!schedOut || !actualOut) return 0;
+    const diff = timeToMinutes(actualOut) - timeToMinutes(schedOut);
+    return Math.max(0, diff);
+  };
+  const late = calcLateOT();
+  const lateCandidate = late >= row.minimum_overtime_minutes;
+
+  return { isCandidate: earlyCandidate || lateCandidate, earlyMinutes: early, lateMinutes: late };
+}
+
+function timeToMinutes(t: string): number {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+}
+
 export function calcEarlyLeaveMinutes(scheduled: string | null, actual: string | null): number {
   const s = normalizeTime(scheduled ?? "");
   const a = normalizeTime(actual ?? "");

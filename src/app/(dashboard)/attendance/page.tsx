@@ -16,7 +16,7 @@ const SORT_MAP: Record<string, string> = {
 export default async function AttendancePage(props: {
   searchParams?: Promise<{
     start_date?: string; end_date?: string; department_id?: string;
-    status?: string; sort_by?: string; sort_dir?: string; tab?: string;
+    status?: string; sort_by?: string; sort_dir?: string; tab?: string; name?: string;
   }>;
 }) {
   const supabase = createClient();
@@ -101,6 +101,10 @@ export default async function AttendancePage(props: {
   if (sp?.department_id && canViewAll) {
     query = query.in("employee_id", (await supabase.from("employees").select("id").eq("department_id", sp.department_id)).data?.map((e: any) => e.id) ?? []);
   }
+  if (sp?.name) {
+    const likeName = `%${sp.name}%`;
+    query = query.ilike("employees.full_name", likeName);
+  }
 
   const sortBy = sp?.sort_by && SORT_MAP[sp.sort_by] ? SORT_MAP[sp.sort_by] : "";
   const ascending = sp?.sort_dir === "asc";
@@ -160,8 +164,8 @@ export default async function AttendancePage(props: {
         role={role}
         departments={(departments ?? []) as any[]}
         canViewAll={canViewAll}
-        showOtButton={showOtButton}
         dateRangeText={dateRangeText}
+        currentName={sp?.name ?? ""}
         availableDates={availableDates}
         currentStartDate={sp?.start_date ?? ""}
         currentEndDate={sp?.end_date ?? ""}
