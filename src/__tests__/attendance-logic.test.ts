@@ -6,6 +6,7 @@ import {
   isDayOffShift,
   isSunday,
   normalizeNip,
+  isOvertimeCandidate,
   type StatusInput,
 } from "@/lib/attendance-logic";
 
@@ -149,6 +150,39 @@ describe("isSunday", () => {
   it("2026-07-19 is Sunday", () => { expect(isSunday("2026-07-19")).toBe(true); });
   it("2026-07-20 is Monday", () => { expect(isSunday("2026-07-20")).toBe(false); });
   it("2026-07-18 is Saturday", () => { expect(isSunday("2026-07-18")).toBe(false); });
+});
+
+describe("isOvertimeCandidate", () => {
+  it("returns false when status != hadir", () => {
+    const r = isOvertimeCandidate({ scheduled_check_in: "07:00", actual_check_in: "06:00", scheduled_check_out: "16:00", actual_check_out: "17:30", status: "tidak_hadir", minimum_overtime_minutes: 30 });
+    expect(r.isCandidate).toBe(false);
+  });
+  it("detects early arrival >= 60 min", () => {
+    const r = isOvertimeCandidate({ scheduled_check_in: "07:00", actual_check_in: "05:45", scheduled_check_out: "16:00", actual_check_out: "16:00", status: "hadir", minimum_overtime_minutes: 30 });
+    expect(r.isCandidate).toBe(true);
+    expect(r.earlyMinutes).toBe(75);
+  });
+  it("detects late departure >= minimum", () => {
+    const r = isOvertimeCandidate({ scheduled_check_in: "07:00", actual_check_in: "07:00", scheduled_check_out: "16:00", actual_check_out: "16:45", status: "hadir", minimum_overtime_minutes: 30 });
+    expect(r.isCandidate).toBe(true);
+    expect(r.lateMinutes).toBe(45);
+  });
+  it("returns false when both are within normal range", () => {
+    const r = isOvertimeCandidate({ scheduled_check_in: "07:00", actual_check_in: "07:05", scheduled_check_out: "16:00", actual_check_out: "16:10", status: "hadir", minimum_overtime_minutes: 30 });
+    expect(r.isCandidate).toBe(false);
+  });
+  it("late only qualifies if >= dept minimum", () => {
+    const r1 = isOvertimeCandidate({ scheduled_check_in: "07:00", actual_check_in: "07:00", scheduled_check_out: "16:00", actual_check_out: "16:20", status: "hadir", minimum_overtime_minutes: 30 });
+    expect(r1.isCandidate).toBe(false);
+    const r2 = isOvertimeCandidate({ scheduled_check_in: "07:00", actual_check_in: "07:00", scheduled_check_out: "16:00", actual_check_out: "16:30", status: "hadir", minimum_overtime_minutes: 30 });
+    expect(r2.isCandidate).toBe(true);
+  });
+  it("detects both early AND late", () => {
+    const r = isOvertimeCandidate({ scheduled_check_in: "07:00", actual_check_in: "05:30", scheduled_check_out: "16:00", actual_check_out: "18:00", status: "hadir", minimum_overtime_minutes: 30 });
+    expect(r.isCandidate).toBe(true);
+    expect(r.earlyMinutes).toBe(90);
+    expect(r.lateMinutes).toBe(120);
+  });
 });
 
 describe("normalizeNip", () => {
