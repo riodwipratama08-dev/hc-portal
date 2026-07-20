@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { logAudit } from "@/lib/audit";
 
 async function checkAdminOrHr() {
   const supabase = createClient();
@@ -17,6 +18,7 @@ export async function updateDepartment(id: string, name: string) {
   const code = name.substring(0, 3).toUpperCase();
   const { error } = await supabase.from("departments").update({ name, code }).eq("id", id);
   if (error) return { error: error.message };
+  await logAudit("update_department", "departments", id, { name });
   revalidatePath("/settings/departments");
   return { success: true };
 }
@@ -27,6 +29,7 @@ export async function createDepartment(name: string) {
   const code = name.substring(0, 3).toUpperCase();
   const { error } = await supabase.from("departments").insert({ name, code });
   if (error) return { error: error.message };
+  await logAudit("create_department", "departments", null, { name });
   revalidatePath("/settings/departments");
   return { success: true };
 }
@@ -43,6 +46,7 @@ export async function deleteDepartment(id: string) {
 
   const { error } = await supabase.from("departments").delete().eq("id", id);
   if (error) return { error: error.message };
+  await logAudit("delete_department", "departments", id, {});
   revalidatePath("/settings/departments");
   return { success: true };
 }

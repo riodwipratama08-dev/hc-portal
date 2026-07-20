@@ -64,6 +64,7 @@ export default async function DashboardLayout({
                 <Link href="/settings/departments" className="block rounded-md px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100">Departments</Link>
                 <Link href="/settings/overtime" className="block rounded-md px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100">Overtime</Link>
                 {isOnlyAdmin && <Link href="/settings/core-values" className="block rounded-md px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100">Core Values</Link>}
+                {isOnlyAdmin && <Link href="/settings/audit-logs" className="block rounded-md px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100">Audit Logs</Link>}
               </div>
             </div>
           )}

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { logAudit } from "@/lib/audit";
 
 export async function createLeaveRequest(formData: FormData) {
   const supabase = createClient();
@@ -159,6 +160,7 @@ export async function approveLeave(requestId: string, notes?: string) {
     await finalizeApproval(supabase, requestId);
   }
 
+  await logAudit("approve_leave", "leave_requests", requestId, { notes });
   revalidatePath("/leaves");
   return { success: true };
 }
@@ -204,6 +206,7 @@ export async function rejectLeave(requestId: string, notes?: string) {
   // Reject the leave request itself
   await supabase.from("leave_requests").update({ status: "rejected" }).eq("id", requestId);
 
+  await logAudit("reject_leave", "leave_requests", requestId, { notes });
   revalidatePath("/leaves");
   return { success: true };
 }

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { EmployeeWithRelations, Department } from "@/lib/types";
-import { resignEmployee } from "./actions";
+import { resignEmployee, resetPassword, toggleSuspend } from "./actions";
 import {
   Table,
   TableBody,
@@ -186,6 +186,26 @@ export function EmployeeTable({
                             </Button>
                           )}
                         </>
+                      )}
+                      {emp.status === "active" && isAdminOrHr && (
+                        <button onClick={async () => {
+                          const newPw = prompt("Enter new password (leave empty for auto-generate):");
+                          const pw = newPw || "Malilkids" + Math.random().toString(36).slice(2, 6) + "!";
+                          if (confirm(`Reset password for ${emp.full_name} to "${pw}"?`)) {
+                            const r = await resetPassword(emp.id, emp.email);
+                            if (r?.error) alert(r.error); else alert(`Password reset to: ${pw}`);
+                            window.location.reload();
+                          }
+                        }} className="text-xs text-blue-600 hover:underline ml-2">Reset PW</button>
+                      )}
+                      {emp.status === "active" && isAdminOrHr && (
+                        <button onClick={async () => {
+                          if (confirm(`Suspend account for ${emp.full_name}?`)) {
+                            const r = await toggleSuspend(emp.id, emp.email, true);
+                            if (r?.error) alert(r.error);
+                            window.location.reload();
+                          }
+                        }} className="text-xs text-orange-600 hover:underline ml-2">Suspend</button>
                       )}
                     </div>
                   </TableCell>
