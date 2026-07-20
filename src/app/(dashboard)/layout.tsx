@@ -44,6 +44,7 @@ export default async function DashboardLayout({
           {canViewAll && <Link href="/employees" className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Employees</Link>}
           {canWrite && <Link href="/shifts" className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Shifts</Link>}
           {canWrite && <Link href="/schedules" className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Schedules</Link>}
+          {(canWrite || role === "manager" || role === "executive") && <Link href="/reports" className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Reports</Link>}
           {(canWrite || role === "manager") && <Link href="/overtime" className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Overtime</Link>}
           <Link href="/leaves" className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Leaves</Link>
           <Link href="/attendance" className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Attendance</Link>
