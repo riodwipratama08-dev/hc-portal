@@ -57,7 +57,7 @@ describe("RBAC — attendance data filtering", () => {
   });
 
   it("manager only gets department's attendance", async () => {
-    const auth = await signIn("spv@test.com", "spv123123");
+    const auth = await signIn("spv@test.com", "spvmk123");
     const token = auth.access_token;
     if (!token) { console.warn("spv@test.com login failed — skipping"); return; }
 
